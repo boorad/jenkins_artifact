@@ -8,14 +8,15 @@ action :fetch do
   artifact_uris = get_artifact_uri()
   
   artifact_uris.each do |artifact_uri|
-    #target = "#{new_resource.target_dir}/#{new_resource.target_file}"
-	target = artifact_uri[:abs]
+    target = "#{new_resource.target_dir}/#{new_resource.target_file}"
+    #target = artifact_uri[:abs]
     uri = add_auth_to_uri(artifact_uri[:abs],
                           new_resource.jenkins_user,
                           new_resource.jenkins_pass)
     Chef::Log.info("fetching #{artifact_uri[:rel]} to #{target}")
 
-    remote_file "#{new_resource.target_dir}/"+artifact_uri[:rel] do
+#    remote_file "#{new_resource.target_dir}/"+artifact_uri[:rel] do
+    remote_file "#{target}" do
       source uri
       owner  new_resource.owner
       mode   new_resource.mode
@@ -72,18 +73,18 @@ def build_number(api, num)
   #       like collecterl-dev #12
   Chef::Log.info("Jenkins project: #{new_resource.jenkins_project_name}")
   Chef::Log.info("Jenkins build  : #{num}")
-  if true || new_build?(num)
+  if new_build?(num)
     Chef::Log.info("new Jenkins build, so proceeding with deploy.")
     build = api.build_details(new_resource.jenkins_project_name, num)
     # TODO: do this saving thing after successful remote_file above?
-    node.set[:jenkins_artifact][new_resource.jenkins_project_name][:build] = num
-    node.save
-	artifacts = []
-	build['artifacts'].each do |artifact|
-		#"#{build['url']}artifact/#{build['artifacts'][0]['relativePath']}"
-		artifacts << {:rel=>artifact['relativePath'], :abs=>"#{build['url']}artifact/#{artifact['relativePath']}"}
-	end
-	artifacts
+    #node.set[:jenkins_artifact][new_resource.jenkins_project_name][:build] = num
+    #node.save
+    artifacts = []
+    build['artifacts'].each do |artifact|
+      #"#{build['url']}artifact/#{build['artifacts'][0]['relativePath']}"
+      artifacts << {:rel=>artifact['relativePath'], :abs=>"#{build['url']}artifact/#{artifact['relativePath']}"}
+    end
+    artifacts
   else
     nil
   end
@@ -105,8 +106,8 @@ def ensure_jenkins_gem_installed
   rescue LoadError
     Chef::Log.info("Missing gem 'jenkins'... installing now.")
     gem_package "jenkins" do
-      action :nothing
-    end.run_action(:install)
+      action :install
+    end # .run_action(:install)
     Gem.clear_paths
     require 'jenkins'
   end
